@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Report</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background-image: url("https://png.pngtree.com/thumb_back/fh260/background/20201012/pngtree-white-cloud-on-blue-sky-weather-background-image_410050.jpg");
+            font-family: Arial, sans-serif;
+            background-repeat: no-repeat;
+            background-size: cover;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .adjust {
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 2px solid black;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 400px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .adjust h1 {
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+        .adjust input {
+            border: 2px solid black;
+            width: 80%;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
+        .adjust button {
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .adjust button:hover {
+            background-color: #45a049;
+        }
+        #weatherData {
+            margin-top: 20px;
+        }
+        .hourly-weather {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        .hour-box {
+            background-color: rgba(255, 255, 255, 0.8);
+            border: 1px solid black;
+            padding: 10px;
+            border-radius: 8px;
+            width: 100px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin: 10px;
+        }
+        .hour-box img {
+            width: 60px;
+            height: 60px;
+        }
+    </style>
+</head>
+<body>
+    <div class="adjust">
+        <h1>Weather Report</h1>
+        <div id="inputs">
+            <input id="city" type="text" placeholder="Enter city">
+            <br>
+            <button onclick="getWeather()">Search</button>
+        </div>
+        <div id="weatherData"></div> 
+    </div>
+
+    <script>
+        const apiKey = 'ae7456c0c5d7b5ea6201e19c78d5227c';  
+
+        async function getWeather() {
+            const city = document.getElementById('city').value;
+            if (!city) {
+                alert('Please enter a city name.');
+                return;
+            }
+
+            const currentWeatherUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
+            const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${apiKey}&units=metric`;
+
+            try {
+                const weatherResponse = await fetch(currentWeatherUrl);
+                const weatherData = await weatherResponse.json();
+
+                if (weatherData.cod === '404') {
+                    document.getElementById('weatherData').innerHTML = `<p>City not found. Please try again.</p>`;
+                    return;
+                }
+
+                // Display current weather data
+                const { name, main, weather, wind, clouds } = weatherData;
+                document.getElementById('weatherData').innerHTML = `
+                    <h2>${name}</h2>
+                    <p>Temperature: ${main.temp}°C</p>
+                    <p>Weather: ${weather[0].description}</p>
+                    <p>Humidity: ${main.humidity}%</p>
+                    <p>Wind Speed: ${wind.speed} m/s</p>
+                    <p>Cloudiness: ${clouds.all}%</p>
+                `;
+
+                // Fetch and display forecast data for the next few hours
+                const forecastResponse = await fetch(forecastUrl);
+                const forecastData = await forecastResponse.json();
+                displayForecast(forecastData);
+
+            } catch (error) {
+                document.getElementById('weatherData').innerHTML = `<p>Unable to fetch weather data.</p>`;
+            }
+        }
+
+        function displayForecast(forecastData) {
+            const hourlyWeather = document.createElement('div');
+            hourlyWeather.classList.add('hourly-weather');
+
+            // Show weather for the next 5 three-hour intervals (15 hours)
+            for (let i = 0; i < 5; i++) {
+                const forecast = forecastData.list[i];
+                const { main, weather, clouds } = forecast;
+                const time = new Date(forecast.dt_txt).getHours();
+                const weatherIcon = getWeatherGif(weather[0].main);
+
+                const hourBox = document.createElement('div');
+                hourBox.classList.add('hour-box');
+                hourBox.innerHTML = `
+                    <p>${time}:00</p>
+                    <img src="${weatherIcon}" alt="weather icon">
+                    <p>${main.temp}°C</p>
+                    <p>${weather[0].description}</p>
+                    <p>Clouds: ${clouds.all}%</p>
+                `;
+                hourlyWeather.appendChild(hourBox);
+            }
+
+            document.getElementById('weatherData').appendChild(hourlyWeather);
+        }
+
+        function getWeatherGif(weatherCondition) {
+            switch (weatherCondition.toLowerCase()) {
+                case 'clear':
+                    return 'https://media.giphy.com/media/26FPpmp6BtqUgnw4E/giphy.gif';
+                case 'clouds':
+                    return 'https://media.giphy.com/media/xT1R9X7SyOamxeK1Ys/giphy.gif';
+                case 'rain':
+                    return 'https://media.giphy.com/media/l0HlQ7LRalO9wQOcA/giphy.gif';
+                case 'snow':
+                    return 'https://media.giphy.com/media/l0HU20BZ6LbSEITza/giphy.gif';
+                case 'thunderstorm':
+                    return 'https://media.giphy.com/media/3o7btR5MZVgX36vLUA/giphy.gif';
+                default:
+                    return 'https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif';
+            }
+        }
+    </script>
+</body>
+</html>
